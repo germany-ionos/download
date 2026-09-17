@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Download-Center</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Inter,Segoe UI,Arial,sans-serif;
+    background:#f0f2f5;
+    color:#1c2433;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.topbar{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:56px;
+    background:#fff;
+    border-bottom:1px solid #e3e7ee;
+    display:flex;
+    align-items:center;
+    padding:0 24px;
+}
+
+.topbar-name{
+    font-size:17px;
+    font-weight:700;
+    color:#003d8f;
+    letter-spacing:.2px;
+}
+
+.topbar-name span{
+    color:#1c2433;
+    font-weight:400;
+}
+
+.card{
+    width:100%;
+    max-width:420px;
+    background:#fff;
+    border:1px solid #e3e7ee;
+    border-radius:8px;
+    padding:32px 28px;
+    text-align:center;
+    box-shadow:0 2px 8px rgba(16,42,84,.06);
+}
+
+.logo{
+    width:52px;
+    height:52px;
+    margin:0 auto 14px;
+    border-radius:8px;
+    background:#003d8f;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.logo svg{
+    width:26px;
+    height:26px;
+    fill:#fff;
+}
+
+h1{
+    margin:0;
+    font-size:20px;
+    font-weight:700;
+}
+
+.sub{
+    margin:6px 0 20px;
+    color:#6b7686;
+    font-size:13px;
+}
+
+.file{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border:1px solid #dfe6f0;
+    background:#f7f9fc;
+    border-radius:6px;
+    padding:14px;
+    text-align:left;
+}
+
+.file-icon{
+    width:42px;
+    height:42px;
+    flex:none;
+    border-radius:6px;
+    background:#e8f0fc;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.file-icon svg{
+    width:22px;
+    height:22px;
+    fill:#003d8f;
+}
+
+.file-info{
+    min-width:0;
+}
+
+.filename{
+    font-size:14px;
+    font-weight:600;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.file-meta{
+    color:#8a94a4;
+    font-size:12px;
+    margin-top:3px;
+}
+
+.download-button{
+    width:100%;
+    margin-top:16px;
+    height:48px;
+    border:0;
+    border-radius:6px;
+    background:#003d8f;
+    color:#fff;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .15s ease;
+}
+
+.download-button:hover:not(:disabled){
+    background:#0a53b8;
+}
+
+.download-button:disabled{
+    cursor:not-allowed;
+    opacity:.55;
+}
+
+.message{
+    min-height:18px;
+    margin-top:14px;
+    font-size:13px;
+    color:#647083;
+}
+
+.loader{
+    width:14px;
+    height:14px;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    border-radius:50%;
+    display:inline-block;
+    margin-right:8px;
+    vertical-align:-2px;
+    animation:spin .7s linear infinite;
+}
+
+@keyframes spin{
+    to{transform:rotate(360deg);}
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+    <div class="topbar-name">Download<span>-Center</span></div>
+</div>
+
+<div class="card">
+
+    <div class="logo">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 2a1 1 0 0 1 1 1v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17V3a1 1 0 0 1 1-1ZM5 19h14v2H5v-2Z"/>
+        </svg>
+    </div>
+
+    <h1>Download-Center</h1>
+    <p class="sub">Ihr Download startet automatisch</p>
+
+    <div class="file">
+
+        <div class="file-icon">
+            <svg viewBox="0 0 24 24">
+                <path d="M6 2h8l5 5v15H6V2Zm7 1.5V8h4.5L13 3.5ZM8 11v2h9v-2H8Zm0 4v2h9v-2H8Z"/>
+            </svg>
+        </div>
+
+        <div class="file-info">
+            <div class="filename" id="filename">Datei wird gesucht...</div>
+            <div class="file-meta">JavaScript • automatischer Download</div>
+        </div>
+
+    </div>
+
+    <button id="download" class="download-button" disabled>
+        Datei herunterladen
+    </button>
+
+    <div id="message" class="message"></div>
+
+</div>
+
+<script>
+
+const usuario = "mexico-01";
+const repositorio = "download";
+const pasta = "downloads";
+
+let archivoSeleccionado = null;
+
+async function seleccionarArchivo(){
+
+    const filename = document.getElementById("filename");
+    const button = document.getElementById("download");
+    const message = document.getElementById("message");
+
+    try{
+
+        const api =
+            `https://api.github.com/repos/${usuario}/${repositorio}/contents/${pasta}`;
+
+        const respuesta = await fetch(api);
+
+        if(!respuesta.ok){
+            throw new Error("API");
+        }
+
+        const archivos = await respuesta.json();
+
+        const archivosJS = archivos.filter(item =>
+            item.type === "file" &&
+            item.name.toLowerCase().endsWith(".js")
+        );
+
+        if(!archivosJS.length){
+            filename.textContent = "Keine Dateien verfügbar";
+            message.textContent = "Bitte versuchen Sie es später erneut.";
+            return;
+        }
+
+        archivoSeleccionado =
+            archivosJS[Math.floor(Math.random() * archivosJS.length)];
+
+        filename.textContent = archivoSeleccionado.name;
+        button.disabled = false;
+
+        // Intenta iniciar la descarga automáticamente
+        descargar(true);
+
+    }
+    catch(error){
+        filename.textContent = "Fehler beim Abrufen der Dateien";
+        message.textContent = "Der Download konnte nicht vorbereitet werden.";
+    }
+
+}
+
+async function descargar(automatico){
+
+    if(!archivoSeleccionado){
+        return;
+    }
+
+    const button = document.getElementById("download");
+    const message = document.getElementById("message");
+
+    button.disabled = true;
+    button.innerHTML =
+        '<span class="loader"></span>Download wird vorbereitet...';
+
+    try{
+
+        const respuesta =
+            await fetch(archivoSeleccionado.download_url);
+
+        if(!respuesta.ok){
+            throw new Error("download");
+        }
+
+        const blob = await respuesta.blob();
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = archivoSeleccionado.name;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        message.textContent =
+            "Der Download wurde erfolgreich gestartet.";
+
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    }
+    catch(error){
+
+        message.textContent = automatico
+            ? "Der Browser hat den automatischen Download blockiert. Bitte verwenden Sie die Schaltfläche."
+            : "Der Download konnte nicht gestartet werden.";
+
+    }
+
+    button.disabled = false;
+    button.textContent = "Erneut herunterladen";
+
+}
+
+document
+.getElementById("download")
+.addEventListener("click", () => descargar(false));
+
+seleccionarArchivo();
+
+</script>
+
+</body>
+</html>
